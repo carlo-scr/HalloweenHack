@@ -8,7 +8,7 @@ RED := \033[0;31m
 NC := \033[0m # No Color
 
 # Project directories
-BACKEND_DIR := browser-use copy
+BACKEND_DIR := backend
 FRONTEND_DIR := webpage
 VENV := $(BACKEND_DIR)/.venv
 
@@ -80,7 +80,11 @@ health: ## Check if backend is healthy
 	@echo "$(YELLOW)Checking backend health...$(NC)"
 	@curl -s http://localhost:8000/health | python3 -m json.tool || echo "$(RED)✗ Backend not responding$(NC)"
 
-test: ## Run a test browser automation task
+test: ## Run comprehensive backend tests
+	@echo "$(YELLOW)Running backend tests...$(NC)"
+	@python3 test_backend.py
+
+test-quick: ## Quick API test
 	@echo "$(YELLOW)Testing browser automation...$(NC)"
 	@curl -s -X POST http://localhost:8000/api/run-task \
 		-H "Content-Type: application/json" \

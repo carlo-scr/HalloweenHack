@@ -2,6 +2,7 @@ import { User, LogOut } from "lucide-react";
 import { ActiveBetsTable } from "@/components/ActiveBetsTable";
 import { AgentStatusGrid } from "@/components/AgentStatusGrid";
 import { ActivityFeed } from "@/components/ActivityFeed";
+import { BrowserUseDemo } from "@/components/BrowserUseDemo";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import {
@@ -56,6 +57,9 @@ const Index = () => {
       <section className="container mx-auto px-4 pb-12">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
+            {/* Browser Automation Demo */}
+            <BrowserUseDemo />
+            
             <ActiveBetsTable />
             <AgentStatusGrid />
           </div>
