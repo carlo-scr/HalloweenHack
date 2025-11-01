@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Polymarket Decision Agent</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+        
+        .section {
+            margin-bottom: 40px;
+            padding: 25px;
+            background: #f8f9fa;
+            border-radius: 15px;
+            border: 2px solid #e9ecef;
+        }
+        
+        .section h2 {
+            color: #495057;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #495057;
+            font-weight: 600;
+        }
+        
+        input, select, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 14px 28px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-right: 10px;
+            margin-top: 10px;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .result {
+            margin-top: 20px;
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .result h3 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+        
+        .result pre {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .status {
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            font-weight: 600;
+        }
+        
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            border: 2px solid #e9ecef;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .stat-label {
+            color: #666;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 Polymarket Decision Agent</h1>
+        <p class="subtitle">Collect market data and make intelligent betting decisions</p>
+        
+        <!-- Collect & Decide Section -->
+        <div class="section">
+            <h2>1. Collect Market Data & Make Decision</h2>
+            <div class="form-group">
+                <label for="marketQuery">Market Query (search, URL, or ID):</label>
+                <input type="text" id="marketQuery" placeholder="e.g., '2024 US Presidential Election' or URL" value="2024 US Presidential Election">
+            </div>
+            <div class="form-group">
+                <label for="method">Collection Method:</label>
+                <select id="method">
+                    <option value="search">Search</option>
+                    <option value="url">URL</option>
+                    <option value="id">Market ID</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="useReplit"> Use Replit for analysis
+                </label>
+            </div>
+            <button onclick="collectAndDecide()" id="collectDecideBtn">
+                Collect & Decide
+            </button>
+            <div id="collectDecideResult"></div>
+        </div>
+        
+        <!-- Separate Collect Section -->
+        <div class="section">
+            <h2>2. Collect Market Data Only</h2>
+            <div class="form-group">
+                <label for="collectQuery">Market Query:</label>
+                <input type="text" id="collectQuery" placeholder="e.g., '2024 US Presidential Election'">
+            </div>
+            <button onclick="collectMarket()" id="collectBtn">
+                Collect Data
+            </button>
+            <div id="collectResult"></div>
+        </div>
+        
+        <!-- Decision Section -->
+        <div class="section">
+            <h2>3. Make Decision (from collected data)</h2>
+            <div class="form-group">
+                <label for="decisionMarketId">Market ID (optional, uses latest if empty):</label>
+                <input type="text" id="decisionMarketId" placeholder="Leave empty for latest market">
+            </div>
+            <button onclick="makeDecision()" id="decideBtn">
+                Make Decision
+            </button>
+            <div id="decideResult"></div>
+        </div>
+        
+        <!-- View Data Section -->
+        <div class="section">
+            <h2>4. View Collected Data</h2>
+            <button onclick="loadMarkets()" id="loadMarketsBtn">
+                Load Markets
+            </button>
+            <button onclick="loadDecisions()" id="loadDecisionsBtn">
+                Load Decisions
+            </button>
+            <div id="viewResult"></div>
+        </div>
+        
+        <!-- Update Outcome Section -->
+        <div class="section">
+            <h2>5. Update Decision Outcome</h2>
+            <div class="form-group">
+                <label for="outcomeDecisionId">Decision ID (Market ID):</label>
+                <input type="text" id="outcomeDecisionId" placeholder="market-id">
+            </div>
+            <div class="form-group">
+                <label for="wasCorrect">Was Correct:</label>
+                <select id="wasCorrect">
+                    <option value="true">Yes</option>
+                    <option value="false">No</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="actualOutcome">Actual Outcome:</label>
+                <input type="text" id="actualOutcome" placeholder="e.g., 'Option A won'">
+            </div>
+            <div class="form-group">
+                <label for="actualReturn">Actual Return (%):</label>
+                <input type="number" id="actualReturn" placeholder="e.g., 25.5" step="0.1">
+            </div>
+            <button onclick="updateOutcome()" id="outcomeBtn">
+                Update Outcome
+            </button>
+            <div id="outcomeResult"></div>
+        </div>
+        
+        <!-- Stats Section -->
+        <div class="section">
+            <h2>Statistics</h2>
+            <div class="stats" id="stats">
+                <div class="stat-card">
+                    <div class="stat-value" id="marketCount">-</div>
+                    <div class="stat-label">Markets Collected</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="decisionCount">-</div>
+                    <div class="stat-label">Decisions Made</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:5000/api';
+        
+        async function apiCall(endpoint, method = 'GET', body = null) {
+            const options = {
+                method,
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            };
+            
+            if (body) {
+                options.body = JSON.stringify(body);
+            }
+            
+            const response = await fetch(`${API_BASE}${endpoint}`, options);
+            return await response.json();
+        }
+        
+        function showLoading(buttonId) {
+            const btn = document.getElementById(buttonId);
+            btn.disabled = true;
+            btn.innerHTML += '<span class="loading"></span>';
+        }
+        
+        function hideLoading(buttonId, text) {
+            const btn = document.getElementById(buttonId);
+            btn.disabled = false;
+            btn.textContent = text;
+        }
+        
+        function showResult(elementId, data, isError = false) {
+            const element = document.getElementById(elementId);
+            const statusClass = isError ? 'error' : 'success';
+            const statusText = isError ? 'Error' : 'Success';
+            
+            element.innerHTML = `
+                <div class="status ${statusClass}">
+                    ${statusText}: ${isError ? data.error || JSON.stringify(data) : data.message || 'Operation completed'}
+                </div>
+                <div class="result">
+                    <h3>Response:</h3>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                </div>
+            `;
+        }
+        
+        async function collectAndDecide() {
+            const query = document.getElementById('marketQuery').value;
+            const method = document.getElementById('method').value;
+            const useReplit = document.getElementById('useReplit').checked;
+            
+            if (!query) {
+                alert('Please enter a market query');
+                return;
+            }
+            
+            showLoading('collectDecideBtn');
+            
+            try {
+                const result = await apiCall('/collect-and-decide', 'POST', {
+                    market_identifier: query,
+                    method: method,
+                    use_replit: useReplit,
+                    headless: true,
+                });
+                
+                showResult('collectDecideResult', result, !result.success);
+                updateStats();
+            } catch (error) {
+                showResult('collectDecideResult', {error: error.message}, true);
+            } finally {
+                hideLoading('collectDecideBtn', 'Collect & Decide');
+            }
+        }
+        
+        async function collectMarket() {
+            const query = document.getElementById('collectQuery').value;
+            
+            if (!query) {
+                alert('Please enter a market query');
+                return;
+            }
+            
+            showLoading('collectBtn');
+            
+            try {
+                const result = await apiCall('/collect', 'POST', {
+                    market_identifier: query,
+                    method: 'search',
+                    headless: true,
+                });
+                
+                showResult('collectResult', result, !result.success);
+                updateStats();
+            } catch (error) {
+                showResult('collectResult', {error: error.message}, true);
+            } finally {
+                hideLoading('collectBtn', 'Collect Data');
+            }
+        }
+        
+        async function makeDecision() {
+            const marketId = document.getElementById('decisionMarketId').value;
+            
+            showLoading('decideBtn');
+            
+            try {
+                const result = await apiCall('/decide', 'POST', {
+                    market_id: marketId || null,
+                });
+                
+                showResult('decideResult', result, !result.success);
+                updateStats();
+            } catch (error) {
+                showResult('decideResult', {error: error.message}, true);
+            } finally {
+                hideLoading('decideBtn', 'Make Decision');
+            }
+        }
+        
+        async function loadMarkets() {
+            showLoading('loadMarketsBtn');
+            
+            try {
+                const result = await apiCall('/markets');
+                
+                const element = document.getElementById('viewResult');
+                element.innerHTML = `
+                    <div class="result">
+                        <h3>Markets (${result.count})</h3>
+                        <pre>${JSON.stringify(result.markets, null, 2)}</pre>
+                    </div>
+                `;
+            } catch (error) {
+                showResult('viewResult', {error: error.message}, true);
+            } finally {
+                hideLoading('loadMarketsBtn', 'Load Markets');
+            }
+        }
+        
+        async function loadDecisions() {
+            showLoading('loadDecisionsBtn');
+            
+            try {
+                const result = await apiCall('/decisions');
+                
+                const element = document.getElementById('viewResult');
+                element.innerHTML = `
+                    <div class="result">
+                        <h3>Decisions (${result.count})</h3>
+                        <pre>${JSON.stringify(result.decisions, null, 2)}</pre>
+                    </div>
+                `;
+            } catch (error) {
+                showResult('viewResult', {error: error.message}, true);
+            } finally {
+                hideLoading('loadDecisionsBtn', 'Load Decisions');
+            }
+        }
+        
+        async function updateOutcome() {
+            const decisionId = document.getElementById('outcomeDecisionId').value;
+            const wasCorrect = document.getElementById('wasCorrect').value === 'true';
+            const actualOutcome = document.getElementById('actualOutcome').value;
+            const actualReturn = parseFloat(document.getElementById('actualReturn').value);
+            
+            if (!decisionId) {
+                alert('Please enter a decision ID');
+                return;
+            }
+            
+            showLoading('outcomeBtn');
+            
+            try {
+                const result = await apiCall('/outcome', 'POST', {
+                    decision_id: decisionId,
+                    was_correct: wasCorrect,
+                    actual_outcome: actualOutcome,
+                    actual_return: actualReturn || null,
+                });
+                
+                showResult('outcomeResult', result, !result.success);
+            } catch (error) {
+                showResult('outcomeResult', {error: error.message}, true);
+            } finally {
+                hideLoading('outcomeBtn', 'Update Outcome');
+            }
+        }
+        
+        async function updateStats() {
+            try {
+                const markets = await apiCall('/markets');
+                const decisions = await apiCall('/decisions');
+                
+                document.getElementById('marketCount').textContent = markets.count || 0;
+                document.getElementById('decisionCount').textContent = decisions.count || 0;
+            } catch (error) {
+                console.error('Error updating stats:', error);
+            }
+        }
+        
+        // Load stats on page load
+        window.addEventListener('load', () => {
+            updateStats();
+        });
+    </script>
+</body>
+</html>
+
