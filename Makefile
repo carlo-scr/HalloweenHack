@@ -94,6 +94,10 @@ test-quick: ## Quick API test
 		-d '{"task": "Go to example.com", "max_steps": 3, "headless": true}' | \
 		python3 -m json.tool
 
+test-agents: ## Test multi-agent trading decision system
+	@echo "$(YELLOW)Testing multi-agent system...$(NC)"
+	@cd backend && source .venv/bin/activate && python multi_agent_decision.py
+
 dev: start ## Alias for 'make start'
 
 # Default target
