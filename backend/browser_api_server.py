@@ -370,9 +370,229 @@ async def analyze_market_with_agents(
             detail=f"Multi-agent analysis failed: {str(e)}"
         )
 
+
+# ==================== AUTONOMOUS TRADING ENDPOINTS ====================
+
+# Global agent instance
+autonomous_agent = None
+
+class AgentConfig(BaseModel):
+    """Configuration for autonomous trading agent."""
+    markets: list[str] = Field(default=["Trump 2024", "Bitcoin $100k by 2025"])
+    check_interval: int = Field(default=300, description="Seconds between checks")
+    min_confidence: float = Field(default=0.7, ge=0, le=1)
+    min_consensus: float = Field(default=0.6, ge=0, le=1)
+    max_position_size: float = Field(default=500.0, gt=0)
+
+
+@app.post("/api/trading/start")
+async def start_autonomous_trading(config: AgentConfig = None):
+    """
+    Start the autonomous trading agent.
+    
+    The agent will:
+    1. Monitor specified markets
+    2. Use multi-agent analysis
+    3. Execute trades autonomously
+    4. Update portfolio in real-time
+    """
+    global autonomous_agent
+    
+    if autonomous_agent and autonomous_agent.running:
+        return {
+            "success": False,
+            "message": "Agent already running",
+            "status": "running"
+        }
+    
+    try:
+        from autonomous_trading_agent import AutonomousTradingAgent
+        
+        if config is None:
+            config = AgentConfig()
+        
+        # Create agent
+        autonomous_agent = AutonomousTradingAgent(
+            markets_to_monitor=config.markets,
+            check_interval=config.check_interval,
+            min_confidence=config.min_confidence,
+            min_consensus=config.min_consensus,
+            max_position_size=config.max_position_size,
+        )
+        
+        # Start in background
+        asyncio.create_task(autonomous_agent.start())
+        
+        # Give it a moment to start
+        await asyncio.sleep(1)
+        
+        return {
+            "success": True,
+            "message": "Autonomous trading agent started",
+            "status": "running",
+            "config": config.dict(),
+            "portfolio": autonomous_agent.portfolio.dict()
+        }
+        
+    except Exception as e:
+        print(f"Error starting agent: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to start agent: {str(e)}"
+        )
+
+
+@app.post("/api/trading/stop")
+async def stop_autonomous_trading():
+    """Stop the autonomous trading agent."""
+    global autonomous_agent
+    
+    if not autonomous_agent or not autonomous_agent.running:
+        return {
+            "success": False,
+            "message": "Agent not running",
+            "status": "stopped"
+        }
+    
+    try:
+        autonomous_agent.stop()
+        
+        return {
+            "success": True,
+            "message": "Autonomous trading agent stopped",
+            "status": "stopped",
+            "final_portfolio": autonomous_agent.portfolio.dict()
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to stop agent: {str(e)}"
+        )
+
+
+@app.get("/api/trading/status")
+async def get_trading_status():
+    """Get current status of autonomous trading agent."""
+    global autonomous_agent
+    
+    if not autonomous_agent:
+        return {
+            "running": False,
+            "message": "Agent not initialized"
+        }
+    
+    return {
+        "running": autonomous_agent.running,
+        "portfolio": autonomous_agent.portfolio.dict(),
+        "markets_monitored": autonomous_agent.markets_to_monitor,
+        "config": {
+            "check_interval": autonomous_agent.check_interval,
+            "min_confidence": autonomous_agent.min_confidence,
+            "min_consensus": autonomous_agent.min_consensus,
+            "max_position_size": autonomous_agent.max_position_size,
+        }
+    }
+
+
+@app.get("/api/portfolio")
+async def get_portfolio():
+    """Get current portfolio state."""
+    global autonomous_agent
+    
+    if not autonomous_agent:
+        # Load from disk
+        from pathlib import Path
+        import json
+        
+        portfolio_path = Path("data/portfolio.json")
+        if portfolio_path.exists():
+            return json.loads(portfolio_path.read_text())
+        else:
+            return {
+                "total_value": 10000.0,
+                "cash": 10000.0,
+                "active_positions": [],
+                "closed_positions": [],
+                "total_pnl": 0.0,
+                "win_rate": 0.0,
+                "total_trades": 0,
+                "winning_trades": 0,
+                "last_updated": datetime.now().isoformat()
+            }
+    
+    return autonomous_agent.portfolio.dict()
+
+
+@app.get("/api/portfolio/positions")
+async def get_active_positions():
+    """Get active trading positions."""
+    global autonomous_agent
+    
+    if not autonomous_agent:
+        from pathlib import Path
+        import json
+        
+        portfolio_path = Path("data/portfolio.json")
+        if portfolio_path.exists():
+            portfolio = json.loads(portfolio_path.read_text())
+            return {"positions": portfolio.get("active_positions", [])}
+        return {"positions": []}
+    
+    return {"positions": autonomous_agent.portfolio.active_positions}
+
+
+@app.get("/api/portfolio/history")
+async def get_trade_history():
+    """Get complete trade history."""
+    from pathlib import Path
+    import json
+    
+    history_path = Path("data/trades_history.json")
+    if history_path.exists():
+        return {"trades": json.loads(history_path.read_text())}
+    
+    return {"trades": []}
+
+
+@app.post("/api/portfolio/close/{trade_id}")
+async def close_position(trade_id: str, final_price: float, resolved_outcome: str):
+    """
+    Manually close a position (for testing/demo).
+    
+    In production, this would be triggered by market resolution.
+    """
+    global autonomous_agent
+    
+    if not autonomous_agent:
+        raise HTTPException(
+            status_code=400,
+            detail="Agent not running"
+        )
+    
+    try:
+        autonomous_agent.portfolio.close_trade(trade_id, final_price, resolved_outcome)
+        autonomous_agent._save_portfolio()
+        
+        return {
+            "success": True,
+            "message": "Position closed",
+            "portfolio": autonomous_agent.portfolio.dict()
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to close position: {str(e)}"
+        )
+
+
 # Main entry point
 if __name__ == "__main__":
     import uvicorn
+    from datetime import datetime
     
     host = os.getenv("HOST", "0.0.0.0")
     port = int(os.getenv("PORT", "8000"))
