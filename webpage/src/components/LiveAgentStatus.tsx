@@ -187,7 +187,7 @@ export const LiveAgentStatus = () => {
       {!isRunning && (
         <div className="text-center py-6 text-muted-foreground text-sm">
           <Brain className="h-8 w-8 mx-auto mb-2 opacity-50" />
-          <p>Agents are on standby. Start autonomous trading to activate.</p>
+          <p>Agents are monitoring. Start autonomous trading to activate analysis.</p>
         </div>
       )}
     </Card>

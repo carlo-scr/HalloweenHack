@@ -143,6 +143,62 @@ export const AutonomousTradingPanel = () => {
     setActionLoading(false);
   };
 
+  const clearPositions = async () => {
+    setActionLoading(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/portfolio/clear-positions`, {
+        method: "POST",
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        toast({
+          title: "Positions Cleared",
+          description: `Closed ${data.positions_closed} active positions`,
+        });
+        await fetchStatus();
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to clear positions",
+        variant: "destructive",
+      });
+    }
+    setActionLoading(false);
+  };
+
+  const resetPortfolio = async () => {
+    if (!confirm("Are you sure you want to reset the portfolio? This will clear all positions and reset cash to $10,000.")) {
+      return;
+    }
+    
+    setActionLoading(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/portfolio/reset`, {
+        method: "POST",
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        toast({
+          title: "Portfolio Reset",
+          description: "Portfolio has been reset to initial state",
+        });
+        await fetchStatus();
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to reset portfolio",
+        variant: "destructive",
+      });
+    }
+    setActionLoading(false);
+  };
+
   useEffect(() => {
     fetchStatus();
     
@@ -338,10 +394,34 @@ export const AutonomousTradingPanel = () => {
           {/* Active Positions */}
           <Card>
             <CardHeader>
-              <CardTitle>Active Positions</CardTitle>
-              <CardDescription>
-                Currently held positions ({portfolio.active_positions.length})
-              </CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Active Positions</CardTitle>
+                  <CardDescription>
+                    Currently held positions ({portfolio.active_positions.length})
+                  </CardDescription>
+                </div>
+                {portfolio.active_positions.length > 0 && (
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={clearPositions}
+                      disabled={actionLoading}
+                    >
+                      Clear All
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={resetPortfolio}
+                      disabled={actionLoading}
+                    >
+                      Reset Portfolio
+                    </Button>
+                  </div>
+                )}
+              </div>
             </CardHeader>
             <CardContent>
               {portfolio.active_positions.length === 0 ? (

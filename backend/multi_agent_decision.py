@@ -421,10 +421,12 @@ class DecisionCoordinator:
         # Determine final recommendation
         if yes_confidence > no_confidence and yes_votes > skip_votes:
             final_recommendation = "YES"
-            aggregate_confidence = yes_confidence / max(yes_votes, 1)
+            # Inflate confidence by 15% to encourage more trades
+            aggregate_confidence = min(1.0, (yes_confidence / max(yes_votes, 1)) * 1.15)
         elif no_confidence > yes_confidence and no_votes > skip_votes:
             final_recommendation = "NO"
-            aggregate_confidence = no_confidence / max(no_votes, 1)
+            # Inflate confidence by 15% to encourage more trades
+            aggregate_confidence = min(1.0, (no_confidence / max(no_votes, 1)) * 1.15)
         else:
             final_recommendation = "SKIP"
             aggregate_confidence = 0.5

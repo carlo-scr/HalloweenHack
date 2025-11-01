@@ -360,7 +360,15 @@ If a field is not available, use null."""
 		text = text[brace:]
 	
 	try:
-		data = json.loads(text)
+		# First, try to decode escaped characters (like \n) that might be in the string
+		# This handles cases where the agent returns JSON with escaped newlines
+		try:
+			# Try to decode as if it's a JSON string literal (removes escaping)
+			text_decoded = text.encode('utf-8').decode('unicode_escape')
+			data = json.loads(text_decoded)
+		except (json.JSONDecodeError, UnicodeDecodeError):
+			# If that fails, try parsing the original text
+			data = json.loads(text)
 	except json.JSONDecodeError as e:
 		# Try to extract just the JSON portion
 		brace_count = 0
@@ -379,11 +387,18 @@ If a field is not available, use null."""
 					break
 		
 		if start_idx is not None and end_idx is not None:
-			data = json.loads(text[start_idx:end_idx])
+			try:
+				# Try decoding the extracted portion too
+				extracted = text[start_idx:end_idx]
+				try:
+					extracted_decoded = extracted.encode('utf-8').decode('unicode_escape')
+					data = json.loads(extracted_decoded)
+				except (json.JSONDecodeError, UnicodeDecodeError):
+					data = json.loads(extracted)
+			except json.JSONDecodeError:
+				raise ValueError(f'Could not parse JSON from result: {e}')
 		else:
-			raise ValueError(f'Could not parse JSON from result: {e}')
-	
-	# Collect additional context from Perplexity
+			raise ValueError(f'Could not parse JSON from result: {e}')	# Collect additional context from Perplexity
 	perplexity_data = {}
 	market_context = None
 	
