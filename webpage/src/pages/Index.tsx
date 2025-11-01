@@ -1,8 +1,8 @@
 import { User, LogOut, Brain } from "lucide-react";
 import { ActiveBetsTable } from "@/components/ActiveBetsTable";
-import { AgentStatusGrid } from "@/components/AgentStatusGrid";
+import { LiveAgentStatus } from "@/components/LiveAgentStatus";
 import { ActivityFeed } from "@/components/ActivityFeed";
-import { BrowserUseDemo } from "@/components/BrowserUseDemo";
+import { AutonomousTradingPanel } from "@/components/AutonomousTradingPanel";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import {
@@ -67,11 +67,11 @@ const Index = () => {
       <section className="container mx-auto px-4 pb-12">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
-            {/* Browser Automation Demo */}
-            <BrowserUseDemo />
+            {/* Autonomous Trading Panel */}
+            <AutonomousTradingPanel />
             
-            <ActiveBetsTable />
-            <AgentStatusGrid />
+            {/* Live Agent Status */}
+            <LiveAgentStatus />
           </div>
           <div>
             <ActivityFeed />
