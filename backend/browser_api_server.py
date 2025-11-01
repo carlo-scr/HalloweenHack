@@ -327,10 +327,7 @@ Return the data as a JSON array.""",
         )
 
 @app.post("/api/polymarket/analyze")
-async def analyze_market_with_agents(
-    market_query: str = None,
-    market_url: str = None
-):
+async def analyze_market_with_agents(request: dict):
     """
     Multi-agent analysis of a Polymarket market.
     
@@ -338,14 +335,16 @@ async def analyze_market_with_agents(
     a collective trading recommendation.
     
     Args:
-        market_query: Search query for the market
-        market_url: Direct URL to the market
+        request: JSON body with either market_query or market_url
         
     Returns:
         Collective decision from all agents with recommendation
     """
     try:
         from multi_agent_decision import DecisionCoordinator
+        
+        market_query = request.get("market_query")
+        market_url = request.get("market_url")
         
         if not market_query and not market_url:
             raise HTTPException(
