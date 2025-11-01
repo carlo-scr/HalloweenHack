@@ -2,13 +2,24 @@
 
 ## 🚀 Quick Start - Choose One Method
 
-### Method 1: Start Everything (Recommended)
+### Method 1: Using Makefile (Easiest! ⭐)
+```bash
+# First time only
+make setup
+
+# Start everything
+make start
+
+# Stop everything (Ctrl+C or in another terminal)
+make stop
+```
+
+### Method 2: Auto-Start Script
 ```bash
 ./start-project.sh
 ```
-This starts both backend and frontend automatically.
 
-### Method 2: Start Separately (Two Terminals)
+### Method 3: Manual Start (Two Terminals)
 
 **Terminal 1 - Backend:**
 ```bash
@@ -98,6 +109,15 @@ async function myAutomation() {
 
 ## 🧪 Test the Integration
 
+### Using Makefile
+```bash
+# Check backend health
+make health
+
+# Run a test automation task
+make test
+```
+
 ### From Browser (Easy)
 1. Open http://localhost:8080
 2. Use the BrowserUseDemo component
@@ -147,6 +167,21 @@ await runBrowserTask({
 
 ## 🔧 Troubleshooting
 
+### Quick Fixes with Makefile
+```bash
+# Stop all servers
+make stop
+
+# Clean caches and temporary files
+make clean
+
+# Reinstall dependencies
+make install
+
+# Fresh start
+make start
+```
+
 ### Backend won't start
 ```bash
 cd "browser-use copy"
@@ -191,6 +226,7 @@ FRONTEND_URL=http://localhost:8080
 
 ## 📚 Documentation
 
+- **Makefile Commands**: `make help` or see `MAKEFILE_HELP.md`
 - **Quick Reference**: `README_BROWSER_USE.md`
 - **Full Guide**: `QUICKSTART.md`
 - **Setup Details**: `BROWSER_USE_SETUP.md`
@@ -204,10 +240,11 @@ FRONTEND_URL=http://localhost:8080
 - [x] API key configured
 - [x] Frontend dependencies installed
 - [x] Integration files created
-- [ ] Start the project: `./start-project.sh`
+- [x] Makefile ready
+- [ ] Run: `make start`
 - [ ] Test at http://localhost:8080
 - [ ] Run your first browser task!
 
 ---
 
-**Everything is ready! Just run `./start-project.sh` and start building!** 🚀
+**Everything is ready! Just run `make start` and start building!** 🚀
