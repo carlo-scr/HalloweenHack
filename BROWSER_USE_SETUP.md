@@ -51,9 +51,9 @@ Then add `<BrowserUseDemo />` to any React component!
 |------|----------|
 | Backend Server | `browser-use copy/browser_api_server.py` |
 | API Key (.env) | `browser-use copy/.env` |
-| React Frontend | `swarm-bet-canvas-65985-main/` |
-| API Service | `swarm-bet-canvas-65985-main/src/services/browserUseApi.ts` |
-| Demo Component | `swarm-bet-canvas-65985-main/src/components/BrowserUseDemo.tsx` |
+| React Frontend | `webpage/` |
+| API Service | `webpage/src/services/browserUseApi.ts` |
+| Demo Component | `webpage/src/components/BrowserUseDemo.tsx` |
 
 ---
 

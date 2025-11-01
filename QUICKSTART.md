@@ -8,7 +8,7 @@ Complete setup guide for integrating browser-use into your React project using t
 
 ```
 HalloweenHack/
-├── swarm-bet-canvas-65985-main/     # Your React frontend
+├── webpage/                         # Your React frontend
 │   └── src/
 │       ├── services/
 │       │   └── browserUseApi.ts     # ✅ Created - API client
@@ -106,7 +106,7 @@ export default function Index() {
 
 ```bash
 # From browser-use directory, navigate to your React app
-cd ../swarm-bet-canvas-65985-main
+cd ../webpage
 npm run dev
 ```
 

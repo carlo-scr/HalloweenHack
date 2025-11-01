@@ -9,7 +9,7 @@
 ./start-backend.sh
 
 # Terminal 2: Start React
-cd swarm-bet-canvas-65985-main && npm run dev
+cd webpage && npm run dev
 ```
 
 ---
@@ -23,7 +23,7 @@ HalloweenHack/
 │   ├── .env                       ← API key configured ✅
 │   └── .venv/                     ← Virtual environment
 │
-├── swarm-bet-canvas-65985-main/  ← React frontend
+├── webpage/                       ← React frontend
 │   └── src/
 │       ├── services/browserUseApi.ts
 │       └── components/BrowserUseDemo.tsx
@@ -98,7 +98,7 @@ curl -X POST http://localhost:8000/api/run-task \
 |------|-------|
 | Backend | `browser-use copy/browser_api_server.py` |
 | .env | `browser-use copy/.env` |
-| React | `swarm-bet-canvas-65985-main/` |
+| React | `webpage/` |
 | Setup | `./setup-backend.sh` |
 | Start | `./start-backend.sh` |
 
