@@ -58,6 +58,8 @@ app.add_middleware(
         "http://localhost:3000",
         "http://localhost:5173",
         "http://localhost:5174",
+        "http://localhost:8080",  # Add port 8080 for Vite
+        "http://localhost:8081",
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -322,6 +324,50 @@ Return the data as a JSON array.""",
         raise HTTPException(
             status_code=500,
             detail=f"Failed to get trending markets: {str(e)}"
+        )
+
+@app.post("/api/polymarket/analyze")
+async def analyze_market_with_agents(
+    market_query: str = None,
+    market_url: str = None
+):
+    """
+    Multi-agent analysis of a Polymarket market.
+    
+    Uses multiple AI agents to analyze the market and provide
+    a collective trading recommendation.
+    
+    Args:
+        market_query: Search query for the market
+        market_url: Direct URL to the market
+        
+    Returns:
+        Collective decision from all agents with recommendation
+    """
+    try:
+        from multi_agent_decision import DecisionCoordinator
+        
+        if not market_query and not market_url:
+            raise HTTPException(
+                status_code=400,
+                detail="Must provide market_query or market_url"
+            )
+        
+        identifier = market_query or market_url
+        
+        # Run multi-agent analysis
+        coordinator = DecisionCoordinator()
+        decision = await coordinator.make_decision(identifier)
+        
+        return decision.dict()
+        
+    except Exception as e:
+        print(f"Error in multi-agent analysis: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Multi-agent analysis failed: {str(e)}"
         )
 
 # Main entry point

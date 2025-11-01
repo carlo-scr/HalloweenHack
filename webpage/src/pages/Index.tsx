@@ -1,4 +1,4 @@
-import { User, LogOut } from "lucide-react";
+import { User, LogOut, Brain } from "lucide-react";
 import { ActiveBetsTable } from "@/components/ActiveBetsTable";
 import { AgentStatusGrid } from "@/components/AgentStatusGrid";
 import { ActivityFeed } from "@/components/ActivityFeed";
@@ -36,7 +36,16 @@ const Index = () => {
         <div className="container mx-auto px-4 py-6 flex items-center justify-between">
           <img src={logo} alt="Agentic Swarms" className="h-6 w-auto" />
           
-          <DropdownMenu>
+          <div className="flex items-center gap-4">
+            <Button 
+              onClick={() => navigate('/analysis')}
+              className="gap-2 bg-gradient-to-r from-primary to-purple-500 hover:from-primary/90 hover:to-purple-500/90"
+            >
+              <Brain className="h-4 w-4" />
+              AI Trading Advisor
+            </Button>
+            
+            <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="flex items-center gap-2 text-white/70 hover:text-white hover:bg-white/5 font-sans">
                 <span className="text-sm">Max</span>
@@ -50,6 +59,7 @@ const Index = () => {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          </div>
         </div>
       </section>
 

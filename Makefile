@@ -80,6 +80,9 @@ health: ## Check if backend is healthy
 	@echo "$(YELLOW)Checking backend health...$(NC)"
 	@curl -s http://localhost:8000/health | python3 -m json.tool || echo "$(RED)✗ Backend not responding$(NC)"
 
+status: ## Check status of all services
+	@./check-status.sh
+
 test: ## Run comprehensive backend tests
 	@echo "$(YELLOW)Running backend tests...$(NC)"
 	@python3 test_backend.py
@@ -90,6 +93,10 @@ test-quick: ## Quick API test
 		-H "Content-Type: application/json" \
 		-d '{"task": "Go to example.com", "max_steps": 3, "headless": true}' | \
 		python3 -m json.tool
+
+test-agents: ## Test multi-agent trading decision system
+	@echo "$(YELLOW)Testing multi-agent system...$(NC)"
+	@cd backend && source .venv/bin/activate && python multi_agent_decision.py
 
 dev: start ## Alias for 'make start'
 
