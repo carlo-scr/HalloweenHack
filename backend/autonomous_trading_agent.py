@@ -40,6 +40,7 @@ sys.path.insert(0, polymarket_agent_dir)
 
 # Import our existing modules
 from multi_agent_decision import DecisionCoordinator, CollectiveDecision
+from polymarket_discovery import PolymarketDiscovery, PolymarketMarket
 
 
 # Simplified MarketData for autonomous trading
@@ -56,24 +57,6 @@ class MarketData(BaseModel):
     status: str = "active"
     market_context: Optional[str] = None
     collected_at: str = Field(default_factory=lambda: datetime.now().isoformat())
-
-
-class PolymarketCollector:
-    """Stub collector for autonomous trading."""
-    
-    async def collect_market_data(self, query: str) -> Optional[MarketData]:
-        """Collect market data - this would use browser automation in production."""
-        # For now, return stub data
-        # In production, this would use the actual polymarket_collector
-        return MarketData(
-            market_id=query.lower().replace(" ", "-"),
-            market_title=query,
-            outcomes=["Yes", "No"],
-            current_prices={"Yes": 0.65, "No": 0.35},
-            total_volume=1000000,
-            liquidity=500000,
-            status="active"
-        )
 
 
 class TradeExecution(BaseModel):
@@ -195,13 +178,14 @@ class AutonomousTradingAgent:
         
         # Initialize components
         self.coordinator = DecisionCoordinator()
-        self.collector = PolymarketCollector()
+        self.discovery = PolymarketDiscovery(headless=True)
         
         # Load or create portfolio
         self.portfolio = self._load_portfolio()
         
         # Tracking
         self.last_analysis: Dict[str, datetime] = {}
+        self.discovered_markets: List[PolymarketMarket] = []
         self.running = False
     
     def _load_portfolio(self) -> Portfolio:
@@ -241,15 +225,8 @@ class AutonomousTradingAgent:
         try:
             print(f"\n🔍 Analyzing market: {market_query}")
             
-            # Collect market data
-            market_data = await self.collector.collect_market_data(query=market_query)
-            
-            if not market_data:
-                print(f"❌ Could not collect data for: {market_query}")
-                return None
-            
-            # Run multi-agent analysis
-            decision = await self.coordinator.make_collective_decision(market_data)
+            # Run multi-agent analysis (coordinator handles data collection internally)
+            decision = await self.coordinator.make_decision(market_query)
             
             print(f"✅ Analysis complete:")
             print(f"   Recommendation: {decision.final_recommendation}")
@@ -260,7 +237,46 @@ class AutonomousTradingAgent:
             
         except Exception as e:
             print(f"❌ Error analyzing {market_query}: {e}")
+            import traceback
+            traceback.print_exc()
             return None
+    
+    async def discover_trading_opportunities(self) -> List[str]:
+        """
+        Discover new trading opportunities from Polymarket.
+        
+        Returns:
+            List of market titles/queries to analyze
+        """
+        print(f"\n🔍 Discovering trading opportunities on Polymarket...")
+        
+        try:
+            # Discover trending markets
+            markets = await self.discovery.discover_trending_markets(limit=10)
+            
+            if not markets:
+                print(f"⚠️  No markets discovered, falling back to configured markets")
+                return self.markets_to_monitor
+            
+            # Store discovered markets
+            self.discovered_markets = markets
+            
+            # Filter for high-volume, liquid markets
+            opportunities = []
+            for market in markets:
+                # Add markets with good liquidity indicators
+                # (volume string like "$10.5M" indicates high volume)
+                if market.volume and ('M' in market.volume or 'K' in market.volume):
+                    opportunities.append(market.title)
+                    print(f"   ✅ {market.title} - Vol: {market.volume}")
+            
+            print(f"\n📊 Found {len(opportunities)} trading opportunities")
+            return opportunities if opportunities else self.markets_to_monitor
+            
+        except Exception as e:
+            print(f"❌ Error discovering opportunities: {e}")
+            # Fall back to configured markets
+            return self.markets_to_monitor
     
     def should_execute_trade(self, decision: CollectiveDecision) -> bool:
         """Determine if trade should be executed based on thresholds."""
@@ -286,7 +302,7 @@ class AutonomousTradingAgent:
     async def execute_trade(
         self,
         decision: CollectiveDecision,
-        market_data: MarketData
+        market_query: str
     ) -> Optional[TradeExecution]:
         """Execute a trade based on decision."""
         
@@ -294,6 +310,33 @@ class AutonomousTradingAgent:
             return None
         
         try:
+            # Find the market in discovered markets to get real data
+            market_data = None
+            for market in self.discovered_markets:
+                if market_query.lower() in market.title.lower():
+                    # Use discovered market data
+                    market_data = MarketData(
+                        market_id=market.url or market.title.lower().replace(" ", "-"),
+                        market_title=market.title,
+                        market_url=market.url,
+                        outcomes=["Yes", "No"],
+                        current_prices={"Yes": market.yes_price, "No": market.no_price},
+                        total_volume=float(market.volume.replace('$', '').replace('M', '000000').replace('K', '000')) if market.volume else None,
+                        status="active"
+                    )
+                    break
+            
+            # If not found in discovered markets, create stub data
+            if not market_data:
+                print(f"⚠️  Market not in discovered list, using stub data")
+                market_data = MarketData(
+                    market_id=market_query.lower().replace(" ", "-"),
+                    market_title=market_query,
+                    outcomes=["Yes", "No"],
+                    current_prices={"Yes": 0.50, "No": 0.50},
+                    status="active"
+                )
+            
             # Determine trade parameters
             action = decision.final_recommendation.lower()
             outcome = decision.recommended_outcome or list(market_data.current_prices.keys())[0]
@@ -349,21 +392,15 @@ class AutonomousTradingAgent:
         if not decision:
             return
         
-        # Get market data (re-collect for trade execution)
-        market_data = await self.collector.collect_market_data(query=market_query)
-        
-        if not market_data:
-            return
-        
-        # Execute trade if criteria met
-        await self.execute_trade(decision, market_data)
+        # Execute trade if criteria met (market data fetched inside execute_trade)
+        await self.execute_trade(decision, market_query)
     
     async def monitoring_loop(self):
         """Main loop that monitors markets continuously."""
         
         print("\n🤖 Autonomous Trading Agent Started")
         print(f"📊 Portfolio: ${self.portfolio.total_value:.2f} (Cash: ${self.portfolio.cash:.2f})")
-        print(f"🎯 Monitoring {len(self.markets_to_monitor)} markets")
+        print(f"🎯 Base markets: {len(self.markets_to_monitor)}")
         print(f"⏱️  Check interval: {self.check_interval}s")
         print(f"📈 Min confidence: {self.min_confidence:.1%}")
         print(f"🗳️  Min consensus: {self.min_consensus:.1%}")
@@ -374,8 +411,16 @@ class AutonomousTradingAgent:
         
         while self.running:
             try:
+                # Discover trading opportunities from Polymarket
+                print(f"\n🌐 Discovering markets from Polymarket...")
+                markets_to_check = await self.discover_trading_opportunities()
+                
+                print(f"\n📋 Will analyze {len(markets_to_check)} markets:")
+                for market in markets_to_check:
+                    print(f"   • {market}")
+                
                 # Check each market
-                for market in self.markets_to_monitor:
+                for market in markets_to_check:
                     if not self.running:
                         break
                     
