@@ -26,13 +26,21 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 # Load environment variables
-load_dotenv()
+env_path = os.path.join(os.path.dirname(__file__), '.env')
+load_dotenv(env_path)
 
 # Import browser-use (local version)
 import sys
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+backend_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, backend_dir)
 
-from browser_use import Agent, Browser, ChatBrowserUse
+try:
+    from browser_use import Agent, Browser
+    from browser_use.llm.browser_use.chat import ChatBrowserUse
+except ImportError as e:
+    print(f"Error importing browser_use: {e}")
+    print(f"Python path: {sys.path}")
+    raise
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -206,9 +214,115 @@ async def get_examples():
                 "name": "Extract Product Info",
                 "task": "Go to https://example.com and extract the main heading",
                 "max_steps": 3
+            },
+            {
+                "name": "Polymarket - Top Markets",
+                "task": "Go to Polymarket.com and get the top 3 trending markets with their current prices",
+                "max_steps": 8
             }
         ]
     }
+
+@app.post("/api/polymarket/collect")
+async def collect_polymarket_data(
+    market_url: str = None,
+    market_id: str = None,
+    search_query: str = None
+):
+    """
+    Collect data from a Polymarket market.
+    
+    Args:
+        market_url: Full URL to the market (e.g., https://polymarket.com/event/...)
+        market_id: Market ID (e.g., "will-trump-win-2024")
+        search_query: Search query to find a market
+        
+    Returns:
+        Structured market data including prices, volume, outcomes, etc.
+    """
+    try:
+        # Import the Polymarket collector
+        sys.path.insert(0, os.path.join(os.path.dirname(__file__), "Polymarket Agent"))
+        from polymarket_collector import collect_market_data
+        
+        # Determine method and identifier
+        if market_url:
+            method = 'url'
+            identifier = market_url
+        elif market_id:
+            method = 'id'
+            identifier = market_id
+        elif search_query:
+            method = 'search'
+            identifier = search_query
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail="Must provide market_url, market_id, or search_query"
+            )
+        
+        # Collect the data
+        market_data = await collect_market_data(
+            market_identifier=identifier,
+            method=method,
+            headless=True
+        )
+        
+        # Return as dict
+        return market_data.dict()
+        
+    except Exception as e:
+        print(f"Error collecting Polymarket data: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to collect market data: {str(e)}"
+        )
+
+@app.get("/api/polymarket/trending")
+async def get_trending_polymarket():
+    """
+    Get trending Polymarket markets.
+    
+    Returns:
+        List of trending markets with basic info
+    """
+    try:
+        # Use browser-use to scrape trending markets
+        llm = ChatBrowserUse()
+        browser = Browser(headless=True)
+        
+        agent = Agent(
+            task="""Go to https://polymarket.com and extract the top 5 trending markets.
+            
+For each market, extract:
+- Title/question
+- Current prices for each outcome
+- Total volume
+- URL to the market
+
+Return the data as a JSON array.""",
+            llm=llm,
+            browser=browser,
+            use_vision=True
+        )
+        
+        history = await agent.run(max_steps=8)
+        result = history.final_result()
+        
+        # Try to parse as JSON
+        try:
+            import json
+            markets = json.loads(str(result))
+            return {"markets": markets, "success": True}
+        except:
+            return {"markets": [], "raw_result": str(result), "success": False}
+            
+    except Exception as e:
+        print(f"Error getting trending markets: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to get trending markets: {str(e)}"
+        )
 
 # Main entry point
 if __name__ == "__main__":
