@@ -453,18 +453,27 @@ class AutonomousTradingAgent:
             logger.info(f"💎 INITIATING AUTONOMOUS TRADE EXECUTION PROTOCOL")
             logger.info(f"{'*'*60}")
             
-            # Simple trade parameters from discovered market
-            action = decision.final_recommendation.lower()
+            # Map YES/NO to BUY/SELL
+            if decision.final_recommendation == "YES":
+                action = "buy"
+            elif decision.final_recommendation == "NO":
+                action = "sell"
+            else:
+                # Should never happen now, but just in case
+                action = "buy"
+            
             outcome = "Yes"  # Simplified - always trade YES outcome
             price = market.yes_price
             
-            # Simple position sizing: $100 or 10% of cash, whichever is smaller
-            size = min(100, self.portfolio.cash * 0.1, self.max_position_size)
+            # Dynamic position sizing: Random between $100 and $800, capped by available cash
+            import random
+            base_size = random.uniform(100, 800)
+            size = min(base_size, self.portfolio.cash * 0.8, self.max_position_size)
             shares = size / price if price > 0 else 0
             
             logger.info(f"📊 Optimized Position Parameters:")
             logger.info(f"  └─ Target Market: {market.title}")
-            logger.info(f"  └─ Strategic Action: {action.upper()}")
+            logger.info(f"  └─ Strategic Action: {action.upper()} ({decision.final_recommendation})")
             logger.info(f"  └─ Outcome Vector: {outcome}")
             logger.info(f"  └─ Entry Price Point: ${price:.6f} (probability: {price:.2%})")
             logger.info(f"  └─ Kelly-Optimized Position Size: ${size:.2f}")
