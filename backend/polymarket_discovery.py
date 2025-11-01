@@ -93,9 +93,15 @@ Only return markets that are currently active (not resolved).
                     # Extract JSON from the result
                     result_str = str(result)
                     
-                    # Find JSON array in the result
-                    start_idx = result_str.find('[')
-                    end_idx = result_str.rfind(']') + 1
+                    # Find JSON array in the result - look for ```json blocks too
+                    if '```json' in result_str:
+                        start_idx = result_str.find('[', result_str.find('```json'))
+                        end_idx = result_str.find('```', start_idx)
+                        if end_idx > start_idx:
+                            end_idx = result_str.rfind(']', start_idx, end_idx) + 1
+                    else:
+                        start_idx = result_str.find('[')
+                        end_idx = result_str.rfind(']') + 1
                     
                     if start_idx >= 0 and end_idx > start_idx:
                         json_str = result_str[start_idx:end_idx]
@@ -130,7 +136,12 @@ Only return markets that are currently active (not resolved).
             traceback.print_exc()
             return []
         finally:
-            await browser.close()
+            # Close browser properly - BrowserSession doesn't have .close()
+            try:
+                if hasattr(browser, 'session') and browser.session:
+                    await browser.session.close()
+            except Exception as e:
+                print(f"⚠️  Error closing browser: {e}")
     
     async def get_detailed_market_data(self, market_url: str) -> Optional[Dict]:
         """
