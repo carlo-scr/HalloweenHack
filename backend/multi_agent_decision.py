@@ -22,6 +22,27 @@ from pydantic import BaseModel, Field
 import json
 
 # ============================================================================
+# Helper Functions
+# ============================================================================
+
+def get_first_outcome_price(prices: Dict[str, Any]) -> float:
+    """
+    Extract the first outcome's YES price from current_prices dict.
+    Handles both simple float values and nested {"Yes": 0.5, "No": 0.5} dicts.
+    """
+    if not prices:
+        return 0.5
+    
+    first_value = list(prices.values())[0]
+    
+    # If it's a nested dict with Yes/No, get the Yes price
+    if isinstance(first_value, dict):
+        return first_value.get('Yes', first_value.get('yes', 0.5))
+    
+    # Otherwise it's already a float
+    return first_value
+
+# ============================================================================
 # Data Models
 # ============================================================================
 
@@ -126,7 +147,7 @@ class DataCollectorAgent(BaseAgent):
         # Make a real trading recommendation instead of just PROCEED/SKIP
         prices = market_data.get('current_prices', {})
         if prices:
-            first_price = list(prices.values())[0]
+            first_price = get_first_outcome_price(prices)
             # Data collector's simple logic: buy low, sell high
             if first_price < 0.4:
                 recommendation = "YES"
@@ -150,7 +171,7 @@ class DataCollectorAgent(BaseAgent):
             agent_name=self.name,
             confidence=confidence,
             recommendation=recommendation,
-            reasoning=f"Data quality check: {len(key_factors)} factors analyzed, market at {list(prices.values())[0]:.2%}" if prices else "Insufficient data",
+            reasoning=f"Data quality check: {len(key_factors)} factors analyzed, market at {get_first_outcome_price(prices):.2%}" if prices else "Insufficient data",
             key_factors=key_factors
         )
 
@@ -260,8 +281,15 @@ class OddsAnalyzer(BaseAgent):
         # Calculate implied probabilities
         key_factors = []
         
+        # Get first outcome price properly (handles multi-outcome markets)
+        first_outcome_price = get_first_outcome_price(prices)
+        
         # Check for extreme odds (potential value)
         for outcome, price in prices.items():
+            # Handle both simple floats and nested dicts
+            if isinstance(price, dict):
+                price = price.get('Yes', price.get('yes', 0.5))
+            
             if price < 0.2:
                 key_factors.append(f"{outcome} trading at {price:.1%} - potential undervalued")
             elif price > 0.8:
@@ -270,16 +298,18 @@ class OddsAnalyzer(BaseAgent):
                 key_factors.append(f"{outcome} at {price:.1%} - toss-up, high uncertainty")
         
         # Check for odds inefficiency (sum != 1.0, which means vig/margin)
-        total_probability = sum(prices.values())
+        # For multi-outcome markets, only sum the Yes prices
+        price_sum = sum(
+            p.get('Yes', p.get('yes', p)) if isinstance(p, dict) else p 
+            for p in prices.values()
+        )
+        total_probability = price_sum / len(prices) if len(prices) > 2 else price_sum
         margin = abs(1.0 - total_probability)
         
         if margin > 0.05:
             key_factors.append(f"High market margin: {margin:.1%} - expensive to trade")
         
         # More aggressive recommendation based on analysis
-        # Get the first outcome's price (YES side in binary markets)
-        first_outcome_price = list(prices.values())[0] if prices else 0.5
-        
         # Be more decisive - look for any edge
         if first_outcome_price < 0.35:
             # Low price = potentially undervalued YES
@@ -502,7 +532,7 @@ class DecisionCoordinator:
         if final_recommendation != "SKIP":
             prices = market_data.get('current_prices', {})
             if prices:
-                current_price = list(prices.values())[0]
+                current_price = get_first_outcome_price(prices)
                 edge = aggregate_confidence - current_price
                 
                 if edge > 0.05:  # Only bet if we have edge

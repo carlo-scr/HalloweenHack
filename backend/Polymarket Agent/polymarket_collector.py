@@ -40,8 +40,8 @@ class PolymarketTradeData(BaseModel):
 	
 	# Outcome data
 	outcomes: list[str] = Field(description="List of possible outcomes/options")
-	current_prices: dict[str, float] = Field(
-		description="Current price (probability) for each outcome, as decimal (0-1)"
+	current_prices: dict[str, float | dict[str, float]] = Field(
+		description="Current price (probability) for each outcome. Can be a simple float or a dict with Yes/No prices"
 	)
 	
 	# Market statistics
