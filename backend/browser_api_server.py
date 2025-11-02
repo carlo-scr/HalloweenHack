@@ -551,9 +551,11 @@ async def get_trade_history():
     
     history_path = Path("data/trades_history.json")
     if history_path.exists():
-        return {"trades": json.loads(history_path.read_text())}
+        trades = json.loads(history_path.read_text())
+        # Return array directly for frontend compatibility
+        return trades
     
-    return {"trades": []}
+    return []
 
 
 @app.post("/api/portfolio/close/{trade_id}")
@@ -585,6 +587,88 @@ async def close_position(trade_id: str, final_price: float, resolved_outcome: st
         raise HTTPException(
             status_code=500,
             detail=f"Failed to close position: {str(e)}"
+        )
+
+
+@app.post("/api/portfolio/clear-positions")
+async def clear_all_positions():
+    """
+    Clear all active positions (close them all at current price).
+    Useful for resetting the portfolio.
+    """
+    global autonomous_agent
+    
+    if not autonomous_agent:
+        raise HTTPException(
+            status_code=400,
+            detail="Agent not running"
+        )
+    
+    try:
+        portfolio = autonomous_agent.portfolio
+        positions_closed = len(portfolio.active_positions)
+        
+        # Close all active positions at their entry price (neutral outcome)
+        for position in list(portfolio.active_positions):
+            # Close at entry price for neutral P&L
+            portfolio.close_trade(
+                position.trade_id,
+                position.price,
+                position.outcome  # Assume outcome matched for neutral close
+            )
+        
+        autonomous_agent._save_portfolio()
+        
+        return {
+            "success": True,
+            "message": f"Cleared {positions_closed} positions",
+            "positions_closed": positions_closed,
+            "portfolio": autonomous_agent.portfolio.dict()
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to clear positions: {str(e)}"
+        )
+
+
+@app.post("/api/portfolio/reset")
+async def reset_portfolio():
+    """
+    Reset portfolio to initial state (clear all positions and reset cash).
+    """
+    global autonomous_agent
+    
+    if not autonomous_agent:
+        raise HTTPException(
+            status_code=400,
+            detail="Agent not running"
+        )
+    
+    try:
+        # Reset portfolio to initial state
+        autonomous_agent.portfolio.active_positions = []
+        autonomous_agent.portfolio.closed_positions = []
+        autonomous_agent.portfolio.cash = 10000.0
+        autonomous_agent.portfolio.total_value = 10000.0
+        autonomous_agent.portfolio.total_pnl = 0.0
+        autonomous_agent.portfolio.win_rate = 0.0
+        autonomous_agent.portfolio.total_trades = 0
+        autonomous_agent.portfolio.winning_trades = 0
+        autonomous_agent.portfolio.update_total_value()
+        autonomous_agent._save_portfolio()
+        
+        return {
+            "success": True,
+            "message": "Portfolio reset to initial state",
+            "portfolio": autonomous_agent.portfolio.dict()
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to reset portfolio: {str(e)}"
         )
 
 

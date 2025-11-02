@@ -60,17 +60,31 @@ export const ActivityFeed = () => {
 
       const activityItems: ActivityItem[] = [];
 
-      // Add system status
+      // Add system status with agent info
       if (statusData.running) {
         activityItems.push({
           id: 'system-running',
           type: 'system',
-          message: 'Autonomous agent active',
-          market: `Monitoring ${statusData.markets_monitored?.length || 0} markets`,
-          time: 'Active',
-          icon: Activity,
+          message: '🤖 Multi-Agent System Active',
+          market: '4 AI agents analyzing markets',
+          time: 'Active Now',
+          icon: Brain,
           color: 'text-green-400',
+          details: 'DataCollector • OddsAnalyzer • Research • Sentiment',
         });
+        
+        // Add monitoring status
+        if (statusData.markets_monitored && statusData.markets_monitored.length > 0) {
+          activityItems.push({
+            id: 'monitoring',
+            type: 'analysis',
+            message: 'Monitoring markets',
+            market: statusData.markets_monitored.join(' • '),
+            time: 'Continuous',
+            icon: Activity,
+            color: 'text-blue-400',
+          });
+        }
       }
 
       // Add recent trades from history
@@ -80,12 +94,12 @@ export const ActivityFeed = () => {
           activityItems.push({
             id: trade.trade_id,
             type: 'trade',
-            message: `${isBuy ? 'Bought' : 'Sold'} ${trade.outcome}`,
+            message: `${isBuy ? '📈 Bought' : '📉 Sold'} ${trade.outcome}`,
             market: trade.market_title,
             time: formatTimeAgo(trade.executed_at),
             icon: isBuy ? ArrowUpRight : ArrowDownRight,
             color: isBuy ? 'text-green-400' : 'text-orange-400',
-            details: `$${trade.size.toFixed(2)} @ ${(trade.price * 100).toFixed(1)}% (${(trade.confidence * 100).toFixed(0)}% confidence)`,
+            details: `$${trade.size.toFixed(2)} @ ${(trade.price * 100).toFixed(1)}% • ${(trade.confidence * 100).toFixed(0)}% agent confidence`,
           });
         });
       }
@@ -96,7 +110,7 @@ export const ActivityFeed = () => {
           activityItems.push({
             id: `active-${position.trade_id}`,
             type: 'analysis',
-            message: `Holding ${position.outcome} position`,
+            message: `💼 Holding ${position.outcome}`,
             market: position.market_title,
             time: formatTimeAgo(position.executed_at),
             icon: TrendingUp,
