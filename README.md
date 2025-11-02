@@ -1,6 +1,6 @@
-# 🎃 HalloweenHack — Polymarket Autonomous Trading
+# 🎃 Agentic Syndicate — Polymarket Autonomous Trading - YC Halloween & Hyperspell Hackathon Winner
 
-HalloweenHack is an integration of browser automation and an AI multi-agent trading advisor built to discover and analyze Polymarket markets and (optionally) execute trades. It includes:
+Agentic Syndicate is an integration of browser automation and an AI multi-agent trading advisor built to discover and analyze Polymarket markets and (optionally) execute trades. It includes:
 
 - A FastAPI Python backend that runs agents and exposes API endpoints.
 - A React + TypeScript frontend demo and dashboard.
