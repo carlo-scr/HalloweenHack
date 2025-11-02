@@ -32,7 +32,7 @@ install: ## Install all dependencies (backend + frontend)
 
 setup: install ## Complete first-time setup
 	@echo "$(BLUE)Running setup...$(NC)"
-	@./setup-backend.sh
+	@scripts/setup-backend.sh
 	@echo "$(GREEN)✓ Setup complete!$(NC)"
 
 start: ## Start both backend and frontend
@@ -81,7 +81,7 @@ health: ## Check if backend is healthy
 	@curl -s http://localhost:8000/health | python3 -m json.tool || echo "$(RED)✗ Backend not responding$(NC)"
 
 status: ## Check status of all services
-	@./check-status.sh
+	@scripts/check-status.sh
 
 test: ## Run comprehensive backend tests
 	@echo "$(YELLOW)Running backend tests...$(NC)"

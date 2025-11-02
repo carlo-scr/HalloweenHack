@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -22,7 +22,7 @@ export function BrowserUseDemo() {
   const [examples, setExamples] = useState<TaskExample[]>([]);
 
   // Check backend health on mount
-  useState(() => {
+  useEffect(() => {
     checkHealth()
       .then(() => setBackendHealthy(true))
       .catch(() => setBackendHealthy(false));
@@ -30,7 +30,7 @@ export function BrowserUseDemo() {
     getExamples()
       .then(data => setExamples(data.examples))
       .catch(console.error);
-  });
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
